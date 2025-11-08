@@ -9,7 +9,7 @@ import glob
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'docs-test'
+project = 'SphinxGen'
 copyright = '2025, erladion'
 author = 'erladion'
 
@@ -31,30 +31,17 @@ exclude_patterns = ['index_template.rst']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-#html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
-
+html_logo = "_static/logo_4.png"
+html_theme = 'furo'
+#html_theme = 'alabaster'    
+html_css_files = ['style.css']
 html_show_sourcelink = False
-html_theme_options = {
-    # Set to False so the sidebar doesn't automatically collapse sections
-    # that are not part of the current path.
-    'collapse_navigation': False, 
-    
-    # Increase the depth to ensure all your dynamic content appears.
-    # Set this to a number greater than your deepest nested file (e.g., 4 or 5).
-    'navigation_depth': 4,
-    
-    # Optional: If you want the current page highlighted consistently
-    'style_nav_header_background': '#2980B9',
 
-    'logo_only': True,
+html_theme_options = { 
+    "sidebar_hide_name": True,
 }
 
-html_logo = "_static/logo_4.png"    
-html_css_files = ['style.css']
-
 # --- Dynamic html_static_path Configuration ---
-
 # This path is the directory containing conf.py
 conf_dir = Path(os.path.abspath(os.path.dirname(__file__)))
 
