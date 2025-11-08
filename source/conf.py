@@ -31,6 +31,7 @@ exclude_patterns = ['index_template.rst']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+#html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme'
 
 html_theme_options = {
@@ -45,6 +46,9 @@ html_theme_options = {
     # Optional: If you want the current page highlighted consistently
     'style_nav_header_background': '#2980B9',
 }
+
+html_logo = "_static/logo_3.png"
+html_css_files = ['style.css']
 
 # --- Dynamic html_static_path Configuration ---
 

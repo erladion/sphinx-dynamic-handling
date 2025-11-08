@@ -1,0 +1,17 @@
+/* Deep Purple for the primary sidebar and top bar */
+.wy-side-nav-search, 
+.wy-nav-top {
+    background-color: #122029 !important; 
+}
+
+/* Optional: Adjust the text color in the header/search bar for contrast */
+.wy-side-nav-search a:hover, 
+.wy-side-nav-search a:active,
+.wy-side-nav-search {
+    color: #F8F8F8; /* Light gray text */
+}
+
+/* Optional: Change the color of the hover/active state for navigation links */
+.wy-menu-vertical li.current > a {
+    background-color: #233f51; /* A lighter shade of the primary color */
+}
