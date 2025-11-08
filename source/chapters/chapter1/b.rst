@@ -13,4 +13,13 @@ The component relies on a single configuration file, `config.ini`.
 | HOST_IP   | str  | 127.0.0.1 | The service host address. |
 | PORT      | int  | 8080    | The listening port. |
 
+
++-----------+------+---------+-----------------------------+
+| Parameter | Type | Default | Description                 |
++===========+======+=========+=============================+
+| HOST\_IP  | str  | 127.0.0.1 | The service host address. |
++-----------+------+---------+-----------------------------+
+| PORT      | int  | 8080    | The listening port.         |
++-----------+------+---------+-----------------------------+
+
 All changes require a restart of the component service.
