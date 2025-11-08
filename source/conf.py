@@ -34,6 +34,7 @@ exclude_patterns = ['index_template.rst']
 #html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme'
 
+html_show_sourcelink = False
 html_theme_options = {
     # Set to False so the sidebar doesn't automatically collapse sections
     # that are not part of the current path.
@@ -45,9 +46,11 @@ html_theme_options = {
     
     # Optional: If you want the current page highlighted consistently
     'style_nav_header_background': '#2980B9',
+
+    'logo_only': True,
 }
 
-html_logo = "_static/logo_3.png"    
+html_logo = "_static/logo_4.png"    
 html_css_files = ['style.css']
 
 # --- Dynamic html_static_path Configuration ---
@@ -80,11 +83,7 @@ html_static_path = list(set(html_static_path))
 
 print(f"Sphinx found static paths: {html_static_path}")
 
-
-# In source/conf.py
-
 latex_elements = {
-    # Fix 1: Only include graphicx.
     'preamble': r'''
 \usepackage{graphicx}
 ''',
@@ -105,7 +104,7 @@ latex_elements = {
     \vskip 2em
     
     % --- 3. LOGO INSERTION POINT (CENTERED) ---
-    \includegraphics[width=10cm]{logo_3.png} \par
+    \includegraphics[width=10cm]{logo_4.png} \par
     \vskip 2em % Space after logo
     
     % --- 4. DATE ---
