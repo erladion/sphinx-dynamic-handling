@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+import glob
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -13,7 +16,14 @@ author = 'erladion'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = ['myst_parser']
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+myst_heading_anchors = 3
 
 templates_path = ['_templates']
 exclude_patterns = ['index_template.rst']
@@ -35,4 +45,33 @@ html_theme_options = {
     # Optional: If you want the current page highlighted consistently
     'style_nav_header_background': '#2980B9',
 }
-html_static_path = ['_static']
+
+# --- Dynamic html_static_path Configuration ---
+
+# This path is the directory containing conf.py
+conf_dir = Path(os.path.abspath(os.path.dirname(__file__)))
+
+# Define the names of subfolders you want to treat as static asset directories
+# e.g., 'images', 'assets', 'static'
+static_folder_names = ['images', 'assets']
+
+dynamic_static_paths = []
+# Search for the specified folder names recursively in all subdirectories
+for folder_name in static_folder_names:
+    # Use glob to find all folders with the target name
+    # '**/' means recursive search through subdirectories
+    search_pattern = str(conf_dir / '**' / folder_name)
+    
+    # glob.glob returns absolute paths, so we convert them back to 
+    # paths relative to conf_dir, as required by html_static_path
+    for found_path_abs in glob.glob(search_pattern, recursive=True):
+        found_path = Path(found_path_abs)
+        if found_path.is_dir():
+            # Get the path relative to conf_dir and add it as a string
+            relative_path = found_path.relative_to(conf_dir)
+            dynamic_static_paths.append(str(relative_path))
+
+html_static_path = ['_static'] + dynamic_static_paths
+html_static_path = list(set(html_static_path))
+
+print(f"Sphinx found static paths: {html_static_path}")
