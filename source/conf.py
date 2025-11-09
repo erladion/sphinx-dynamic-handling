@@ -1,6 +1,11 @@
+from ensurepip import version
 import os
+import sys
 from pathlib import Path
 import glob
+
+sys.path.append(str(Path('extensions').resolve()))
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -12,16 +17,24 @@ import glob
 project = 'SphinxGen'
 copyright = '2025, erladion'
 author = 'erladion'
+version = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser', 'sphinx.ext.duration']
+extensions = [
+    'myst_parser', 
+    'sphinx.ext.duration',
+    'sphinx.ext.ifconfig',
+    'env_config',
+]
 
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
 }
+
+numfig = True
 
 myst_heading_anchors = 3
 
@@ -32,40 +45,48 @@ exclude_patterns = ['index_template.rst']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_logo = "_static/logo_4.png"
-html_theme = 'furo'
-#html_theme = 'alabaster'    
+html_favicon = html_logo
+html_theme = 'furo' # 'alabaster'
+html_show_sphinx = False
 html_css_files = ['style.css']
 html_show_sourcelink = False
-
 html_theme_options = { 
     "sidebar_hide_name": True,
 }
 
-# --- Dynamic html_static_path Configuration ---
-# This path is the directory containing conf.py
-conf_dir = Path(os.path.abspath(os.path.dirname(__file__)))
+should_include = True
+production_build = False
 
-# Define the names of subfolders you want to treat as static asset directories
-# e.g., 'images', 'assets', 'static'
-static_folder_names = ['images', 'assets']
+def setup(app):
+    app.add_config_value('should_include', should_include, 'env')
+    app.add_config_value('production_build', production_build, 'env')
 
-dynamic_static_paths = []
-# Search for the specified folder names recursively in all subdirectories
-for folder_name in static_folder_names:
-    # Use glob to find all folders with the target name
-    # '**/' means recursive search through subdirectories
-    search_pattern = str(conf_dir / '**' / folder_name)
+def getDynamicStaticPaths():
+    # --- Dynamic html_static_path Configuration ---
+    conf_dir = Path(os.path.abspath(os.path.dirname(__file__)))
+    # Define the names of subfolders you want to treat as static asset directories
+    # e.g., 'images', 'assets', 'static'
+    static_folder_names = ['images', 'assets']
+
+    dynamic_static_paths = []
+    # Search for the specified folder names recursively in all subdirectories
+    for folder_name in static_folder_names:
+        # Use glob to find all folders with the target name
+        # '**/' means recursive search through subdirectories
+        search_pattern = str(conf_dir / '**' / folder_name)
+        
+        # glob.glob returns absolute paths, so we convert them back to 
+        # paths relative to conf_dir, as required by html_static_path
+        for found_path_abs in glob.glob(search_pattern, recursive=True):
+            found_path = Path(found_path_abs)
+            if found_path.is_dir():
+                # Get the path relative to conf_dir and add it as a string
+                relative_path = found_path.relative_to(conf_dir)
+                dynamic_static_paths.append(str(relative_path))
     
-    # glob.glob returns absolute paths, so we convert them back to 
-    # paths relative to conf_dir, as required by html_static_path
-    for found_path_abs in glob.glob(search_pattern, recursive=True):
-        found_path = Path(found_path_abs)
-        if found_path.is_dir():
-            # Get the path relative to conf_dir and add it as a string
-            relative_path = found_path.relative_to(conf_dir)
-            dynamic_static_paths.append(str(relative_path))
+    return dynamic_static_paths
 
-html_static_path = ['_static'] + dynamic_static_paths
+html_static_path = ['_static'] + getDynamicStaticPaths()
 html_static_path = list(set(html_static_path))
 
 print(f"Sphinx found static paths: {html_static_path}")
