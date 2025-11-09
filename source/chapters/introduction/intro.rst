@@ -13,3 +13,5 @@ and outlines the primary goals of its integration into the main system.
 * Key Feature 2
 
 For detailed installation steps, proceed to the next section.
+
+:ref:`Installation details <chapters/chapter3/anchors1#installation-anchor>`

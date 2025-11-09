@@ -7,9 +7,10 @@ content_title: MyST Markdown Guide
 
 This file demonstrates how to structure content using Markdown while still leveraging the full power of Sphinx directives.
 
-(installation-anchor)=
 ## Step 1: Installation Checklist
 {#installation-anchor}
+
+(installation-anchor)=
 
 This heading has a clean, inline anchor named `installation-anchor`. This is the preferred way to create link targets in MyST Markdown.
 
