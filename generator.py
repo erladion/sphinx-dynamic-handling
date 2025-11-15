@@ -15,8 +15,6 @@ PLACEHOLDER = '<<DYNAMIC_CHAPTER_LINKS>>'
 CHAPTERS_SUB_DIR = 'chapters'
 GENERATED_INCLUDES_EXTENSION = '.rst'
 
-# --- Utility Functions for Metadata ---
-
 def read_chapter_config(path: str) -> Dict[str, Any]:
     """Reads the .chapterconf for title and order."""
     config_path = os.path.join(path, '.chapterconf') 
@@ -69,8 +67,8 @@ def extract_md_metadata(filepath: str) -> Dict[str, Any]:
         
         if not yaml_match:
             print(f"⚠️ WARNING: Missing or malformed YAML front matter in {filepath}. Skipping.")
+            print(f"   {content}")
             metadata['valid'] = False
-            return metadata
         
         # Parse the YAML content
         data = yaml.safe_load(yaml_match.group(1)) or {}
@@ -106,8 +104,7 @@ def extract_md_metadata(filepath: str) -> Dict[str, Any]:
         if directive_metadata['title']:
              metadata['title'] = directive_metadata['title']
              
-        metadata['valid'] = directive_metadata['valid'] # Use the directive's validity check
-    
+        metadata['valid'] = directive_metadata['valid'] # Use the directive's validity check   
     elif metadata['order'] == 9999:
         metadata['valid'] = False # If no directive and no valid order in YAML, it's invalid
 
@@ -171,7 +168,7 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
     
     items_to_link = []
     
-    # 1. SCAN DIRECTORY and COLLECT METADATA
+    # Scan directory and collect metadata
     for item in sorted(os.listdir(directory_path)):
         full_path = os.path.join(directory_path, item)
         relative_path_name = os.path.join(chapter_relative_path, item)
@@ -183,7 +180,7 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
             'issues': False
         }
 
-        # Case A: SUB-CHAPTER FOLDER (Requires .chapterconf)
+        # Sub chapter folders (Requires .chapterconf)
         if os.path.isdir(full_path):
             config = read_chapter_config(full_path)
             
@@ -212,7 +209,7 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
                         sub_item['link_path'] = os.path.join(item, sub_item['link_path'])
                         items_to_link.append(sub_item)
 
-        # Case B: CONTENT FILE (.md or .rst)
+        # Content file (.md or .rst)
         elif item != 'index.rst':
             file_extension = os.path.splitext(item)[1].lower()
             
@@ -239,10 +236,10 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
                 })
                 items_to_link.append(item_data)
         
-    # 2. SORT ITEMS
+    # Sort items
     items_to_link.sort(key=lambda x: x['order'])
 
-    # 3. GENERATE TOCTREE CONTENT
+    # Generate toctree content
     toctree_entries = []
     issues_found = False
     
@@ -261,8 +258,7 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
             # Simple syntax: just the path (Sphinx uses the document's internal title)
             toctree_entries.append(f"   {link_path}")
             
-    # 4. WRITE THE INDEX.RST FILE
-    
+    # Write index.rst file
     # Read the title from the chapterconf if it exists (for prettier header)
     root_config = read_chapter_config(directory_path)
 
@@ -298,7 +294,6 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
 
     return items_to_link
 
-# --- Master Index (Top-Level) Generation ---
 def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
     """
     Reads the master index template, substitutes the top-level chapter links, 
@@ -317,7 +312,7 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
     ])
     
     try:
-        # 1. READ from the template file
+        # Read template file
         with open(MASTER_INDEX_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
             content = f.read()
 
@@ -331,7 +326,7 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
             print(f"❌ Error: Placeholder {PLACEHOLDER} not found in template '{MASTER_INDEX_TEMPLATE_PATH}'. Skipping master index update.")
             return
 
-        # 2. WRITE to the live index file
+        # Write index file
         with open(MASTER_INDEX_PATH, 'w', encoding='utf-8') as f:
             f.write(new_content)
             
@@ -353,10 +348,15 @@ def generate_combined_includes(root_dir: str):
     for dirpath, dirnames, filenames in os.walk(root_dir):
         for filename in filenames:
             # We only look at RST files for the dynamic include feature
+            metadata = None
             if filename.endswith(GENERATED_INCLUDES_EXTENSION) and filename != 'index.rst':
                 filepath = os.path.join(dirpath, filename)
                 metadata = extract_rst_metadata(filepath)
+            elif filename.endswith(".md") and filename != 'index.md':
+                filepath = os.path.join(dirpath, filename)
+                metadata = extract_md_metadata(filepath)
 
+            if metadata is not None:
                 dest_file_base = metadata.get('destination_file')
                 order = metadata.get('order')
 
@@ -406,7 +406,6 @@ def generate_combined_includes(root_dir: str):
         print(f"✅ Generated inclusion list: {os.path.relpath(output_file_path, root_dir)} ({len(files_to_include)} content files)")
 
 
-# --- Main Execution ---
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate Sphinx TOCTREE indices recursively.")
     parser.add_argument('--root-dir', type=str, default='.', 

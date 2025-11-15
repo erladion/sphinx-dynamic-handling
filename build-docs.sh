@@ -10,8 +10,6 @@
 # --build-pdf: Optional. If present, the PDF (LaTeX) build step is skipped.
 # --build-singlehtml: Optional. If present, builds documentation into a single HTML file.
 
-# --- 1. Argument Parsing ---
-
 # Initialize variables
 CLEAN_SOURCE_DIR=""
 DOCS_BUILD_DIR=""
@@ -74,9 +72,7 @@ EXEC_ROOT=$(pwd)
 # Define the location for the temporary source structure, adjacent to the clean source.
 TEMP_SOURCE_DIR="${CLEAN_SOURCE_DIR}_temp" 
 
-# --- 2. Setup Temporary Source Structure ---
-
-echo "--- 2. Setting up temporary source folder ---"
+echo "--- Setting up temporary source folder ---"
 
 # 1. Clean up any previous temporary directory
 rm -rf "$TEMP_SOURCE_DIR"
@@ -101,15 +97,13 @@ cp -r "${CLEAN_SOURCE_DIR}"/.[!.]* "$TEMP_SOURCE_DIR" 2>/dev/null
 # IMPORTANT FIX: Ignore the exit status of the optional dot-file copy by resetting $? to 0.
 true # Always sets the exit code to 0
 
-# --- 3. Generate Dynamic Indices ---
-
-echo "--- 3. Generating TOCTREE indices in temp folder ---"
+echo "--- Generating TOCTREE indices in temp folder ---"
 
 # Navigate into the temporary source folder. 
-cd "$TEMP_SOURCE_DIR" || { echo "ERROR: Cannot change to temp source directory '$TEMP_SOURCE_DIR'."; exit 1; }
+#cd "$TEMP_SOURCE_DIR" || { echo "ERROR: Cannot change to temp source directory '$TEMP_SOURCE_DIR'."; exit 1; }
 
 # Execute the generator. 
-python3 generator.py --root-dir .
+python3 generator.py --root-dir $TEMP_SOURCE_DIR
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Dynamic chapter generation failed in temp structure."
@@ -118,24 +112,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# --- 4. Run Sphinx Builds (HTML and PDF) ---
-
-# 4a. Run HTML Build
-echo "--- 4a. Running Sphinx HTML Build ---"
-
+echo "--- Running Sphinx HTML Build ---"
 # Set the HTML builder based on the flag
 if [ "$BUILD_SINGLEHTML" == "yes" ]; then
     HTML_BUILDER="singlehtml"
 else
     HTML_BUILDER="html"
 fi
-
-HTML_OUTPUT_DIR="$EXEC_ROOT/$DOCS_BUILD_DIR/$HTML_BUILDER"
-mkdir -p "$HTML_OUTPUT_DIR"
-
 echo "   -> Using Sphinx builder: $HTML_BUILDER"
 
-sphinx-build -b "$HTML_BUILDER" . "$HTML_OUTPUT_DIR"
+HTML_OUTPUT_DIR="$EXEC_ROOT/$DOCS_BUILD_DIR/$HTML_BUILDER"
+echo "   -> Output directory: $HTML_OUTPUT_DIR"
+mkdir -p "$HTML_OUTPUT_DIR"
+
+sphinx-build -b "$HTML_BUILDER" "$TEMP_SOURCE_DIR" "$HTML_OUTPUT_DIR"
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Sphinx HTML build failed."
@@ -144,15 +134,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-
-# 4b. Run PDF Build (LaTeX)
-echo "--- 4b. Running Sphinx PDF Build ---"
-
+echo "--- Running Sphinx PDF Build ---"
 if [ "$BUILD_PDF" == "yes" ]; then
+    echo "   -> Latex PDF"
     LATEX_SOURCE_DIR="$EXEC_ROOT/$DOCS_BUILD_DIR/latex"
     mkdir -p "$LATEX_SOURCE_DIR"
 
-    # Step 1: Generate LaTeX source files
     echo "   -> Generating LaTeX source files..."
     sphinx-build -b latex . "$LATEX_SOURCE_DIR"
 
@@ -187,9 +174,7 @@ if [ "$BUILD_PDF" == "yes" ]; then
                 exit 1
             fi
         fi
-        # --- END OF DYNAMIC LOGO COPY ---
         
-        # Step 2: Compile PDF from LaTeX source
         echo "   -> Compiling PDF (requires TeX Live/MiKTeX to be installed)..."
         cd "$LATEX_SOURCE_DIR" || { echo "ERROR: Cannot change to LaTeX source directory '$LATEX_SOURCE_DIR'."; exit 1; }
         
@@ -206,18 +191,14 @@ if [ "$BUILD_PDF" == "yes" ]; then
     else
         echo "WARNING: Sphinx LaTeX source generation failed. PDF output will be unavailable."
     fi
-else
-    echo "   -> Skipping PDF build as requested via flag."
 fi
 
 if [ "$BUILD_SIMPLEPDF" == "yes" ]; then
-    echo $pwd
+    echo "   -> Simple PDF"
     sphinx-build -b simplepdf . "$EXEC_ROOT/$DOCS_BUILD_DIR/simplepdf"
 fi
 
-# --- 5. Cleanup ---
-
-echo "--- 5. Cleaning up temporary source folder ---"
+echo "--- Cleaning up temporary source folder ---"
 
 # Navigate back to the original root before removing the temp directory
 cd "$EXEC_ROOT"
