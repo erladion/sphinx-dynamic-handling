@@ -22,8 +22,10 @@ Each file should contain a content_order and a content_title
 
 For a .rst file it should look like the following 
 ```
-:content_order: <Order of the content file in the chapter>
-:content_title: <Title of the content>
+.. metadata::
+   :content_order: <Order of the content file in the chapter>
+   :content_title: <Title of the content>
+   :content_destination: <path to result file>
 ```
 and for a .md file:
 ```
@@ -31,4 +33,32 @@ and for a .md file:
 content_order: <Order of the content file in the chapter>
 content_title: <Title of the content>
 ---
+```
+
+Specifying the :content_destination: allows for the dynamic creation of content to be used with a .. include:: directive
+
+Example:
+```
+chapters/
+├── chapter3/
+│   ├── include-example.rst // contains the .. include:: directive
+|   ├── fileA-to-be-included.rst // contains the :content_destination: property
+│   └── sub-dir/
+│       └── fileB-to-be-included.rst // contains the :content_destination: property
+
+In this example the file include-example.rst contains the directive
+.. include:: testing-include.rst
+
+And both fileA-to-be-included.rst and fileB-to-be-included.rst
+have the :content_destination: chapters/chapter3/testing-include
+
+This will make it so that the generator.py script will exclude both 
+fileA-to-be-included.rst and fileB-to-be-included.rst from the 
+toc tree creation and use them for creation of a new file called 
+testing-include.rst
+containing two include directives like this:
+
+.. include:: fileA-to-be-included.rst
+
+.. include:: sub-dir/fileB-to-be-included.rst
 ```
