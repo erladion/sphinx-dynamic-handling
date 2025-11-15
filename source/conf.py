@@ -27,6 +27,7 @@ extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.ifconfig',
     'env_config',
+    'metadata'
 ]
 
 source_suffix = {

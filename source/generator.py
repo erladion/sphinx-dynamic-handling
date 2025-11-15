@@ -1,6 +1,9 @@
+from curses import meta
+from math import comb
 import os
 import re
 import argparse
+from textwrap import indent
 from typing import Dict, List, Any
 import yaml # Required for YAML front matter in MyST Markdown
 
@@ -10,6 +13,7 @@ import yaml # Required for YAML front matter in MyST Markdown
 
 PLACEHOLDER = '<<DYNAMIC_CHAPTER_LINKS>>'
 CHAPTERS_SUB_DIR = 'chapters'
+GENERATED_INCLUDES_EXTENSION = '.rst'
 
 # --- Utility Functions for Metadata ---
 
@@ -52,6 +56,7 @@ def extract_md_metadata(filepath: str) -> Dict[str, Any]:
     metadata = {
         'order': 9999,
         'title': None,
+        'destination_file': None,
         'valid': True # Flag to track successful extraction of ORDER
     }
     
@@ -69,22 +74,42 @@ def extract_md_metadata(filepath: str) -> Dict[str, Any]:
         
         # Parse the YAML content
         data = yaml.safe_load(yaml_match.group(1)) or {}
-        
-        order = data.get('content_order')
-        title = data.get('content_title')
 
-        if isinstance(order, int):
-            metadata['order'] = order
+        if isinstance(data.get('content_order'), int):
+            metadata['order'] = data.get('content_order')
         else:
             print(f"⚠️ WARNING: Missing or non-integer 'content_order' in {filepath}. Defaulting to 9999.")
             metadata['valid'] = False # Must have order to be linked
 
-        if isinstance(title, str):
-            metadata['title'] = title.strip()
+        if isinstance(data.get('content_title'), str):
+            metadata['title'] = data.get('content_title').strip()
+
+        if isinstance(data.get('content_destination'), str):
+            metadata['destination_file'] = data.get('content_destination').strip()
             
     except Exception as e:
         print(f"❌ ERROR: Failed to read Markdown metadata from {filepath}: {e}")
         metadata['valid'] = False
+
+    directive_metadata = extract_rst_metadata(filepath)
+    
+    # If the directive was found, update the MD metadata with the directive's values.
+    # This ensures the new :content_destination: tag is captured, and potentially overrides 
+    # title/order if specified in both places.
+    if directive_metadata.get('destination_file'):
+        metadata['destination_file'] = directive_metadata['destination_file']
+        
+        # Override order/title if explicitly set in the directive, 
+        # or use the directive's order if the YAML front matter was missing it.
+        if directive_metadata['order'] != 9999:
+             metadata['order'] = directive_metadata['order']
+        if directive_metadata['title']:
+             metadata['title'] = directive_metadata['title']
+             
+        metadata['valid'] = directive_metadata['valid'] # Use the directive's validity check
+    
+    elif metadata['order'] == 9999:
+        metadata['valid'] = False # If no directive and no valid order in YAML, it's invalid
 
     return metadata
 
@@ -93,37 +118,45 @@ def extract_rst_metadata(filepath: str) -> Dict[str, Any]:
     metadata = {
         'order': 9999,  # Default to last position if missing
         'title': None,
+        'destination_file': None,
         'valid': True  # Flag to track successful extraction of ORDER
     }
-    
-    order_pattern = re.compile(r'^:content_order:\s*(\d+)', re.MULTILINE)
-    title_pattern = re.compile(r'^:content_title:\s*(.*)', re.MULTILINE)
-    
+
+    metadata_yaml_pattern = re.compile(
+        r'^\.\.\s*metadata::\s*\n'
+        r'(.*?)'
+        r'(?=\n\S|\Z)',
+        re.DOTALL | re.MULTILINE
+    )
+
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            # Read first 1000 characters (should cover metadata block)
             head_content = f.read(1000)
-            
-            # Extract Order (MANDATORY CHECK)
-            order_match = order_pattern.search(head_content)
-            if order_match:
-                metadata['order'] = int(order_match.group(1))
-            else:
-                print(f"⚠️ WARNING: Missing ':content_order:' in {filepath}. Defaulting to order 9999.")
-                metadata['valid'] = False
 
-            # Extract Title (OPTIONAL CHECK)
-            title_match = title_pattern.search(head_content)
-            if title_match:
-                metadata['title'] = title_match.group(1).strip()
-            # If title is missing, the toctree will use the document's internal title.
-                
+            yaml_match = metadata_yaml_pattern.search(head_content)
+
+            if yaml_match:
+                yaml_content = yaml_match.group(1)
+
+                first_line = [line for line in yaml_content.splitlines() if line.strip()][0]
+                indent = len(first_line) - len(first_line.lstrip())
+
+                unindented_content = re.sub(r'^\s{' + str(indent) + '}', '', yaml_content, flags=re.MULTILINE)
+                data = yaml.safe_load(unindented_content) or {}
+                data = {key.lstrip(':'): value for key, value in data.items()}
+
+                metadata['order'] = data.get('content_order', 9999)
+                metadata['title'] = data.get('content_title')
+                metadata['destination_file'] = data.get('content_destination')
+
+                if metadata['order'] == 9999:
+                    print(f"⚠️ WARNING: Missing ':content_order:' in {filepath}. Defaulting to order 9999.")
+                    metadata['valid'] = False
     except Exception as e:
         print(f"❌ ERROR: Failed to read RST metadata from {filepath}: {e}")
         metadata['valid'] = False
 
     return metadata
-
 
 def process_directory(root_dir: str, directory_path: str, chapter_relative_path: str = '') -> List[Dict[str, Any]]:
     """
@@ -190,6 +223,10 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
                 metadata = extract_rst_metadata(full_path)
                 
             if metadata:
+                if metadata.get('destination_file'):
+                    print(f" ⏩ Skipping {item}: Tagged for inclusion (:content_destination: found).")
+                    continue
+
                 if not metadata['valid']:
                     item_data['issues'] = True
 
@@ -255,14 +292,13 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
 
         print(f"  ✨ Index generated: {os.path.relpath(index_path, root_dir)} ({len(items_to_link)} links)")
         if issues_found:
-            print(f"‼️ REVIEW REQUIRED: Issues found in files in {directory_path}.")
+            print(f"⚠️ REVIEW REQUIRED: Issues found in files in {directory_path}.")
     else:
         print(f"  ⏩ Skipping index generation for container directory: {directory_path}")
 
     return items_to_link
 
 # --- Master Index (Top-Level) Generation ---
-
 def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
     """
     Reads the master index template, substitutes the top-level chapter links, 
@@ -303,9 +339,74 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
 
     except IOError as e:
         print(f"❌ Fatal Error: Could not access or write files: {e}")
-        
-# --- Main Execution ---
 
+
+def generate_combined_includes(root_dir: str):
+    """
+    Scans recursively for RST files, reads their ':content_destination:' metadata, and 
+    generates the inclusion list file at the designated location with 
+    correct relative paths.
+    """
+
+    combined_files_map = {}
+
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            # We only look at RST files for the dynamic include feature
+            if filename.endswith(GENERATED_INCLUDES_EXTENSION) and filename != 'index.rst':
+                filepath = os.path.join(dirpath, filename)
+                metadata = extract_rst_metadata(filepath)
+
+                dest_file_base = metadata.get('destination_file')
+                order = metadata.get('order')
+
+                if dest_file_base:
+                    if dest_file_base not in combined_files_map:
+                        combined_files_map[dest_file_base] = []
+                    
+                    # Store the FULL path to the source content file    
+                    combined_files_map[dest_file_base].append({
+                        'full_path': filepath,
+                        'order': order
+                    })
+
+    print("\n🔨 Generating dynamic include files...")
+    if not combined_files_map:
+        print("⏩ No :content_destination: tags found in RST files. Skipping combined include generation.")
+        return
+
+    for dest_file_base, files_to_include in combined_files_map.items():
+        files_to_include.sort(key=lambda x: x['order'])
+
+        # Determine the full path of the generated inclusion list file
+        output_file_path = os.path.join(root_dir, f"{dest_file_base}{GENERATED_INCLUDES_EXTENSION}")
+
+        # Ensure the destination directory exists
+        os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+
+        include_directives = []
+
+        # Define the starting directory for relative path calculation
+        relative_start_dir = os.path.dirname(output_file_path)
+
+        for file_data in files_to_include:
+            source_content_path = file_data['full_path']
+
+            # Calculate the path from the generated file's location to the source content file
+            relative_include_path = os.path.relpath(source_content_path, relative_start_dir)
+
+            include_directives.append(
+                f".. include:: {relative_include_path}\n"
+            )
+
+        # Write the list of include directives to the new destination file
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            f.write("\n\n".join(include_directives) + "\n")
+
+        print(f"✅ Generated inclusion list: {os.path.relpath(output_file_path, root_dir)} ({len(files_to_include)} content files)")
+
+
+# --- Main Execution ---
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate Sphinx TOCTREE indices recursively.")
     parser.add_argument('--root-dir', type=str, default='.', 
@@ -344,6 +445,9 @@ if __name__ == '__main__':
     for chapter in top_level_chapters:
         chapter_path = os.path.join(CHAPTERS_ROOT, chapter['path_name'])
         process_directory(ROOT_DIR, chapter_path, chapter['path_name'])
+
+    # Generate the combined inclusion files based on the :content_destination: tag
+    generate_combined_includes(ROOT_DIR)
         
     # Final step: Update the master index
     update_master_index(ROOT_DIR, top_level_chapters)
