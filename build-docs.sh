@@ -63,6 +63,8 @@ if [ -z "$CLEAN_SOURCE_DIR" ] || [ -z "$DOCS_BUILD_DIR" ]; then
     exit 1
 fi
 
+source .docs/bin/activate
+
 echo "PDF Build status: $BUILD_PDF"
 echo "Single HTML Build status: $BUILD_SINGLEHTML"
 
@@ -100,17 +102,17 @@ true # Always sets the exit code to 0
 echo "--- Generating TOCTREE indices in temp folder ---"
 
 # Navigate into the temporary source folder. 
-#cd "$TEMP_SOURCE_DIR" || { echo "ERROR: Cannot change to temp source directory '$TEMP_SOURCE_DIR'."; exit 1; }
+cd "$TEMP_SOURCE_DIR" || { echo "ERROR: Cannot change to temp source directory '$TEMP_SOURCE_DIR'."; exit 1; }
 
 # Execute the generator. 
-python3 generator.py --root-dir $TEMP_SOURCE_DIR
-
-if [ $? -ne 0 ]; then
-    echo "ERROR: Dynamic chapter generation failed in temp structure."
-    cd "$EXEC_ROOT"
-    rm -rf "$TEMP_SOURCE_DIR"
-    exit 1
-fi
+#python3 generator.py --root-dir $TEMP_SOURCE_DIR
+#
+#if [ $? -ne 0 ]; then
+#    echo "ERROR: Dynamic chapter generation failed in temp structure."
+#    cd "$EXEC_ROOT"
+#    rm -rf "$TEMP_SOURCE_DIR"
+#    exit 1
+#fi
 
 echo "--- Running Sphinx HTML Build ---"
 # Set the HTML builder based on the flag
@@ -125,7 +127,7 @@ HTML_OUTPUT_DIR="$EXEC_ROOT/$DOCS_BUILD_DIR/$HTML_BUILDER"
 echo "   -> Output directory: $HTML_OUTPUT_DIR"
 mkdir -p "$HTML_OUTPUT_DIR"
 
-sphinx-build -b "$HTML_BUILDER" "$TEMP_SOURCE_DIR" "$HTML_OUTPUT_DIR"
+sphinx-build -b "$HTML_BUILDER" . "$HTML_OUTPUT_DIR"
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Sphinx HTML build failed."
