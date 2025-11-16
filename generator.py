@@ -11,6 +11,7 @@ import yaml # Required for YAML front matter in MyST Markdown
 # These paths are set relative to the root directory passed via the command line argument.
 # We will define them dynamically in the main function based on the passed root.
 
+MASTER_INDEX_FILE = 'index_template.rst'
 PLACEHOLDER = '<<DYNAMIC_CHAPTER_LINKS>>'
 CHAPTERS_SUB_DIR = 'chapters'
 GENERATED_INCLUDES_EXTENSION = '.rst'
@@ -300,7 +301,7 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
     and writes the final live index.rst.
     """
     # Define paths relative to the passed root_dir
-    MASTER_INDEX_TEMPLATE_PATH = os.path.join(root_dir, 'index_template.rst') 
+    MASTER_INDEX_TEMPLATE_PATH = os.path.join(root_dir, MASTER_INDEX_FILE) 
     MASTER_INDEX_PATH = os.path.join(root_dir, 'index.rst')
     
     # Links point to the index.rst files we generated in each top-level chapter folder.
@@ -410,9 +411,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate Sphinx TOCTREE indices recursively.")
     parser.add_argument('--root-dir', type=str, default='.', 
                         help="The root directory containing the source files (e.g., '.' or '/tmp/source').")
+    parser.add_argument('--chapters-dir', type=str, default='chapters')
+    parser.add_argument('--index-template', type=str, default='index_template.rst', 
+                        help="File to use as a top index template. Must contain a <<DYNAMIC_CHAPTER_LINKS>> line.")
+                       
     args = parser.parse_args()
     
     ROOT_DIR = args.root_dir
+    CHAPTERS_SUB_DIR = args.chapters_dir
+    MASTER_INDEX_FILE = args.index_template
     CHAPTERS_ROOT = os.path.join(ROOT_DIR, CHAPTERS_SUB_DIR)
     
     print(f"▶️ Sphinx Dynamic Chapter Generator Initiated (Root: {ROOT_DIR})")
