@@ -7,5 +7,3 @@
    :caption: Chapters:
 
 <<DYNAMIC_CHAPTER_LINKS>>
-
-   

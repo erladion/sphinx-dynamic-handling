@@ -6,22 +6,13 @@ import glob
 
 sys.path.append(str(Path('extensions').resolve()))
 
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
+# --- Project information ---
 project = 'SphinxGen'
 copyright = '2025, erladion'
 author = 'erladion'
 version = "1.0.0"
 
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
+# --- Extensions ---
 extensions = [
     'myst_parser', 
     'sphinx.ext.duration',
@@ -35,6 +26,10 @@ source_suffix = {
     '.md': 'markdown',
 }
 
+dynamic_handling_options = {
+    "chapters_dir" : "chapters"
+}
+
 numfig = True
 
 myst_heading_anchors = 3
@@ -42,9 +37,7 @@ myst_heading_anchors = 3
 templates_path = ['_templates']
 exclude_patterns = ['index_template.rst']
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
+# --- Options for HTML output ---
 html_logo = "_static/logo.png"
 html_favicon = html_logo
 html_theme = 'furo' # 'alabaster'
@@ -54,11 +47,6 @@ html_show_sourcelink = False
 html_theme_options = { 
     "sidebar_hide_name": True,
 }
-
-dynamic_handling_options = {
-    "chapters_dir" : "chapters"
-}
-
 html_js_files = ["js/furo-toc-persistence.js"]
 
 should_include = True
