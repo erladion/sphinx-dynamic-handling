@@ -76,14 +76,14 @@ TEMP_SOURCE_DIR="${CLEAN_SOURCE_DIR}_temp"
 
 echo "--- Setting up temporary source folder ---"
 
-# 1. Clean up any previous temporary directory
+# Clean up any previous temporary directory
 rm -rf "$TEMP_SOURCE_DIR"
 
-# 2. Create the temporary directory
+# Create the temporary directory
 mkdir -p "$TEMP_SOURCE_DIR"
 
-# 3. Copy the CONTENTS of the clean source directory into the temporary directory.
-# Step 3a: Copy all non-hidden files and directories (like chapters/ and _static/)
+# Copy the CONTENTS of the clean source directory into the temporary directory.
+# Copy all non-hidden files and directories (like chapters/ and _static/)
 cp -r "${CLEAN_SOURCE_DIR}/"* "$TEMP_SOURCE_DIR"
 
 if [ $? -ne 0 ]; then
@@ -92,11 +92,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Step 3b: Copy all dot-files/directories (like .chapterconf files) excluding '.' and '..'
+# Copy all dot-files/directories (like .chapterconf files) excluding '.' and '..'
 # We pipe errors to /dev/null to hide 'No such file or directory' if no dot-files exist.
 cp -r "${CLEAN_SOURCE_DIR}"/.[!.]* "$TEMP_SOURCE_DIR" 2>/dev/null
 
-# IMPORTANT FIX: Ignore the exit status of the optional dot-file copy by resetting $? to 0.
 true # Always sets the exit code to 0
 
 echo "--- Generating TOCTREE indices in temp folder ---"
@@ -146,9 +145,6 @@ if [ "$BUILD_PDF" == "yes" ]; then
     sphinx-build -b latex . "$LATEX_SOURCE_DIR"
 
     if [ $? -eq 0 ]; then
-        
-        # --- DYNAMICALLY READ LOGO FILENAME FROM conf.py ---
-        # This code remains essential for ensuring the logo asset is available for the LaTeX build.
         LOGO_PATH=$(grep 'html_logo' conf.py | sed -n 's/.*html_logo = "\(.*\)".*/\1/p')
 
         if [ -z "$LOGO_PATH" ]; then
