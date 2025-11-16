@@ -18,55 +18,7 @@ Uses a clean, modern style with distinct borders and backgrounds.
     --padding-base: 1.25rem;
 }
 
-/* Base style for all admonitions */
-.rst-content .admonition {
-    font-size: 1rem;
-    padding: var(--padding-base);
-    margin: 1.5rem 0;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-    border-left-width: 0.5rem;
-    border-left-style: solid;
-    color: var(--color-text);
-}
-
-/* Ensure the title inside the admonition box uses the same color */
-.rst-content .admonition .admonition-title {
-    font-weight: 700;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    padding-right: 1.5rem; /* Space for the default theme icon */
-    background: none;
-    border-bottom: none;
-    color: var(--color-text);
-}
-
-/* NOTE - Blue Theme (Informational) */
-.rst-content .admonition.note {
-    background-color: var(--color-note);
-    border-left-color: var(--color-note-border);
-}
-
-/* TIP - Green Theme (Advice/Best Practice) */
-.rst-content .admonition.tip {
-    background-color: var(--color-tip);
-    border-left-color: var(--color-tip-border);
-}
-
-/* IMPORTANT - Amber Theme (Critical, but not a risk) */
-.rst-content .admonition.important {
-    background-color: var(--color-important);
-    border-left-color: var(--color-important-border);
-}
-
-/* WARNING - Red Theme (Potential Hazard/Error) */
-.rst-content .admonition.warning {
-    background-color: var(--color-warning);
-    border-left-color: var(--color-warning-border);
-}
-
-/* CAUTION - Violet Theme (Risk/Need for Care) */
-.rst-content .admonition.caution {
-    background-color: var(--color-caution);
-    border-left-color: var(--color-caution-border);
+.admonition.warning {
+    --color-admonition-title--warning: #ff8080;
+    --color-admonition-title-background--warning: rgba(255, 0, 0, 0.2);
 }
