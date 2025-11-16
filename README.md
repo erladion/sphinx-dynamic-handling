@@ -4,8 +4,11 @@
 
 Testing out sphinx generation from dynamically available content.
 
-The base of the project is the generator.py which builds up the necessary index.rst files expected by sphinx.
+The base of the project is the generator.py which builds up the necessary index.rst files expected by Sphinx.
 It does this based on metadata found in folders, subfolders and files in the chapters folder (which is assumed to exist).
+
+A Sphinx extension has also been built from this general idea, the extension is located at extensions/dynamic_handling.py
+It registers a metadata directive with Sphinx, allowing the use of .. metadata:: along with properties. It also does what the generator.py script does but it does this using a Sphinx event, more preciesly the build-inited event, causing the generation to be run just before the actual build.
 
 The chapters folder can contain any number of folders and with any name.
 What sets the ordering and naming of each chapter is the content of the .chapterconf file that exists in each subfolder.
