@@ -7,7 +7,7 @@ A project for dynamically creating table of contents for Sphinx based on availab
 The base of the project is the generator.py which builds up the necessary index.rst files expected by Sphinx.
 It does this based on metadata found in folders, subfolders and files in the chapters folder (this is the default, can be specified).
 
-A Sphinx extension has also been built from this general idea, the extension is located at extensions/dynamic_handling.py
+A Sphinx extension has also been built from this general idea, the extension is located at extensions/dynamic_handling.py.  
 It registers a metadata directive with Sphinx, allowing the use of .. metadata:: along with properties. It also does what the generator.py script does but it does this using a Sphinx event, more preciesly the build-inited event, causing the generation to be run just before the actual build.
 
 ---
@@ -30,7 +30,7 @@ For a .rst file it should look like the following
 .. metadata::
    :content_order: <Order of the content file in the chapter>
    :content_title: <Title of the content>
-   :content_destination: <path to result file>
+   :content_destination: <Path to result file>
 ```
 and for a .md file:
 ```
@@ -69,6 +69,8 @@ containing two include directives like this:
 
 .. include:: sub-dir/fileB-to-be-included.rst
 ```
+
+The dynamically created include files will be cleaned up and removed when Sphinx sends build-finished in order to not leave files which would be included in the index.rst files on next run.
 
 ---
 ## Specifying chapters directory
