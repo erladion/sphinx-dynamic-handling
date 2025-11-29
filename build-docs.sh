@@ -98,8 +98,6 @@ cp -r "${CLEAN_SOURCE_DIR}"/.[!.]* "$TEMP_SOURCE_DIR" 2>/dev/null
 
 true # Always sets the exit code to 0
 
-echo "--- Generating TOCTREE indices in temp folder ---"
-
 # Navigate into the temporary source folder. 
 cd "$TEMP_SOURCE_DIR" || { echo "ERROR: Cannot change to temp source directory '$TEMP_SOURCE_DIR'."; exit 1; }
 
