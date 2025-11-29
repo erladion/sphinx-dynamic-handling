@@ -37,8 +37,17 @@ and for a .md file:
 ---
 content_order: <Order of the content file in the chapter>
 content_title: <Title of the content>
+content_destination: <Path to result file>
 ---
 ```
+or
+````
+```{metadata}
+:content_order: <Order of the content file in the chapter>
+:content_title: <Title of the content>
+:content_destination: <Path to result file>
+```  
+````
 
 ---
 ## Dynamic include example
