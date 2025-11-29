@@ -233,7 +233,7 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
                         items_to_link.append(sub_item)
 
         # Content file (.md or .rst)
-        elif item != 'index.rst':
+        elif item != f"index{GENERATED_INCLUDES_EXTENSION}":
             file_extension = os.path.splitext(item)[1].lower()
             
             metadata = None
@@ -274,9 +274,14 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
         link_path = item['link_path']
 
         if display_title and display_title != link_path:
-            toctree_entries.append(f"   {display_title} <{link_path}>")
+            toctree_entries.append(f"{display_title} <{link_path}>")
         else:
-            toctree_entries.append(f"   {link_path}")
+            toctree_entries.append(f"{link_path}")
+
+        if GENERATED_INCLUDES_EXTENSION == ".rst":
+            for i in range(len(toctree_entries)):
+                toctree_entries[i] = "   " + toctree_entries[i] 
+            
             
     # Write index.rst file
     # Read the title from the chapterconf if it exists (for prettier header)
@@ -289,18 +294,27 @@ def process_directory(root_dir: str, directory_path: str, chapter_relative_path:
             chapter_title = root_config['title']
         
         # The parent index file path (e.g., source/chapters/my_chapter/index.rst)
-        index_path = os.path.join(directory_path, 'index.rst')
+        index_path = os.path.join(directory_path, f"index{GENERATED_INCLUDES_EXTENSION}")
         
         # Create header and toctree content
         header = f"{chapter_title}\n{'=' * len(chapter_title)}\n\n"
 
         # Ensure a blank line separates the options from the links
-        toctree_content = (
-            ".. toctree::\n"
-            "   :maxdepth: 2\n"
-            f"   :caption: {chapter_title} Content:\n\n"
-            + "\n".join(toctree_entries) + "\n"
-        )
+        if GENERATED_INCLUDES_EXTENSION == ".md":
+            toctree_content = (
+                "```{toctree}\n"
+                ":maxdepth: 2\n"
+                f":caption: {chapter_title} Content:\n\n"
+                + "\n".join(toctree_entries) + "\n"
+                "```"
+            )
+        else:
+            toctree_content = (
+                ".. toctree::\n"
+                "   :maxdepth: 2\n"
+                f"   :caption: {chapter_title} Content:\n\n"
+                + "\n".join(toctree_entries) + "\n"
+            )
 
         with open(index_path, 'w', encoding='utf-8') as f:
             f.write(header)
@@ -325,13 +339,13 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
         MASTER_INDEX_TEMPLATE_PATH = os.path.join(root_dir, MASTER_INDEX_FILE) 
         index_file_exists = os.path.exists(MASTER_INDEX_TEMPLATE_PATH)    
     
-    MASTER_INDEX_PATH = os.path.join(root_dir, 'index.rst')
+    MASTER_INDEX_PATH = os.path.join(root_dir, f"index{GENERATED_INCLUDES_EXTENSION}")
     
     # Links point to the index.rst files we generated in each top-level chapter folder.
     # We use the chapter folder name (path_name) and the constant CHAPTERS_SUB_DIR
     master_toctree_entries = "\n".join([
         # Indentation for links under the toctree directive in index.rst
-        f"   {CHAPTERS_SUB_DIR}/{chapter['path_name']}/index" 
+        f"{CHAPTERS_SUB_DIR}/{chapter['path_name']}/index" 
         for chapter in all_chapters
     ])
     
@@ -342,7 +356,9 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
             with open(MASTER_INDEX_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
                 content = f.read()
         else:
-            content = f"""
+            print(GENERATED_INCLUDES_EXTENSION)
+            if GENERATED_INCLUDES_EXTENSION == ".rst":
+                content = """
 |project| documentation
 ==================================
 
@@ -352,6 +368,19 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
    :caption: Chapters:
 
    <<DYNAMIC_CHAPTER_LINKS>>
+"""
+            else:
+                content = """
+|project| documentation
+==================================
+
+```{toctree}
+:maxdepth: 2
+:numbered:
+:caption: Chapters:
+
+<<DYNAMIC_CHAPTER_LINKS>>
+```
 """
 
         # The substitution must occur after the existing toctree directive in the template.
@@ -386,7 +415,7 @@ def generate_combined_includes(root_dir: str):
         for filename in filenames:
             # We only look at RST files for the dynamic include feature
             metadata = None
-            if filename.endswith(GENERATED_INCLUDES_EXTENSION) and filename != 'index.rst':
+            if filename.endswith(".rst") and filename != 'index.rst':
                 filepath = os.path.join(dirpath, filename)
                 metadata = extract_rst_metadata(filepath)
             elif filename.endswith(".md") and filename != 'index.md':
@@ -446,9 +475,15 @@ def generate_combined_includes(root_dir: str):
 
 def generate_files(app):
     logger.info("Generating dynamic indices and includes")
+    global CHAPTERS_SUB_DIR
+    global MASTER_INDEX_FILE
+    global GENERATED_INCLUDES_EXTENSION
+
     ROOT_DIR = app.srcdir
     CHAPTERS_SUB_DIR = app.config.dynamic_handling_options.get("chapters_dir", "chapters")
-    MASTER_INDEX_FILE = app.config.dynamic_handling_options.get("master_index_file", None)
+    MASTER_INDEX_FILE = app.config.dynamic_handling_options.get("master_index_file", MASTER_INDEX_FILE)
+    GENERATED_INCLUDES_EXTENSION = app.config.dynamic_handling_options.get("index_extension", ".rst")
+
     CHAPTERS_ROOT = os.path.join(ROOT_DIR, CHAPTERS_SUB_DIR)
     
     logger.verbose(f"▶️ Sphinx Dynamic Chapter Generator Initiated (Root: {ROOT_DIR})")
