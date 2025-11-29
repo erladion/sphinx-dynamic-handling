@@ -110,3 +110,10 @@ The default template looks like the following:
 
 It is possible to specify another template to be used during toc generation. The only requirement is the existence of the tag <<DYNAMIC_CHAPTER_LINKS>>
 To do this either use the **--index-template** for the generator.py or set the **master_index_file** variable for the extension
+
+## Index output type
+
+By default the index files created containing the toc:s are written to .rst files as index.rst
+It is however possible to specify to output as markdown files instead by setting the **index_extension** variable to **'.md'**
+
+This will also cause the dynamic include directive build up to also create markdown files instead of reStructuredText.
