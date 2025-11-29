@@ -1,7 +1,7 @@
 import os
 import re
 import yaml # Required for YAML front matter in MyST Markdown
-from docutils.parsers.rst import Directive
+from docutils.parsers.rst import Directive, directives
 from docutils import nodes
 from sphinx.util import logging
 from typing import Dict, List, Any
@@ -15,6 +15,12 @@ class MetadataDirective(Directive):
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = False
+
+    option_spec = {
+        'content_order' : directives.nonnegative_int,
+        'content_title' : directives.unchanged,
+        'content_destination' : directives.unchanged
+    }
 
     def run(self):
         try:
@@ -103,30 +109,39 @@ def extract_md_metadata(filepath: str) -> Dict[str, Any]:
     
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
+            content = f.read(1000)
             
         # Regex to find the YAML front matter block (must be at the start)
         yaml_match = re.match(r'---\s*\n(.*?)\n---', content, re.DOTALL)
         
         if not yaml_match:
-            logger.verbose(f"  ℹ️ INFO: Could not find a YAML style metadata block, trying rst style {filepath}.")        
-            metadata = extract_rst_metadata(filepath)
+            metadata_yaml_pattern = re.compile(
+                r'```{metadata}\s*\n'
+                r'(.*?)\n'
+                r'```',
+                re.DOTALL | re.MULTILINE
+            )
+
+            match = metadata_yaml_pattern.search(content)
+            match_content = match.group(1)
         else:
-            # Parse the YAML content
-            data = yaml.safe_load(yaml_match.group(1)) or {}
+            match_content = yaml_match.group(1)
 
-            if isinstance(data.get('content_order'), int):
-                metadata['order'] = data.get('content_order')
-                metadata['valid'] = True
-            else:
-                logger.warning(f"  ⚠️ WARNING: Missing or non-integer 'content_order' in {filepath}. Defaulting to 9999.")
-                metadata['valid'] = False # Must have order to be linked
+        data = yaml.safe_load(match_content) or {}
+        data = {key.lstrip(':'): value for key, value in data.items()}
 
-            if isinstance(data.get('content_title'), str):
-                metadata['title'] = data.get('content_title').strip()
+        if isinstance(data.get('content_order'), int):
+            metadata['order'] = data.get('content_order')
+            metadata['valid'] = True
+        else:
+            logger.warning(f"  ⚠️ WARNING: Missing or non-integer 'content_order' in {filepath}. Defaulting to 9999.")
+            metadata['valid'] = False # Must have order to be linked
 
-            if isinstance(data.get('content_destination'), str):
-                metadata['destination_file'] = data.get('content_destination').strip()       
+        if isinstance(data.get('content_title'), str):
+            metadata['title'] = data.get('content_title').strip()
+
+        if isinstance(data.get('content_destination'), str):
+            metadata['destination_file'] = data.get('content_destination').strip()
     except Exception as e:
         logger.error(f"  ❌ ERROR: Failed to read Markdown metadata from {filepath}: {e}")
         metadata['valid'] = False
@@ -336,10 +351,10 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
     # Define paths relative to the passed root_dir
     index_file_exists = False
     if MASTER_INDEX_FILE is None:
-        MASTER_INDEX_TEMPLATE_PATH = os.path.join(root_dir, MASTER_INDEX_FILE) 
-        index_file_exists = os.path.exists(MASTER_INDEX_TEMPLATE_PATH)    
+        master_index_template_path = os.path.join(root_dir, MASTER_INDEX_FILE)
+        index_file_exists = os.path.exists(master_index_template_path)
     
-    MASTER_INDEX_PATH = os.path.join(root_dir, f"index{GENERATED_INCLUDES_EXTENSION}")
+    master_index_path = os.path.join(root_dir, f"index{GENERATED_INCLUDES_EXTENSION}")
     
     # Links point to the index.rst files we generated in each top-level chapter folder.
     # We use the chapter folder name (path_name) and the constant CHAPTERS_SUB_DIR
@@ -353,7 +368,7 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
         # Read template file
         content = ""
         if index_file_exists:
-            with open(MASTER_INDEX_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
+            with open(master_index_template_path, 'r', encoding='utf-8') as f:
                 content = f.read()
         else:
             print(GENERATED_INCLUDES_EXTENSION)
@@ -390,14 +405,14 @@ def update_master_index(root_dir: str, all_chapters: List[Dict[str, Any]]):
             # We prepend a newline if needed, and substitute the content
             new_content = content.replace(PLACEHOLDER, f"\n{master_toctree_entries}\n")
         else:
-            logger.error(f"❌ Error: Placeholder {PLACEHOLDER} not found in template '{MASTER_INDEX_TEMPLATE_PATH}'. Skipping master index update.")
+            logger.error(f"❌ Error: Placeholder {PLACEHOLDER} not found in template '{master_index_template_path}'. Skipping master index update.")
             return
 
         # Write index file
-        with open(MASTER_INDEX_PATH, 'w', encoding='utf-8') as f:
+        with open(master_index_path, 'w', encoding='utf-8') as f:
             f.write(new_content)
             
-        logger.verbose(f"✅ Successfully updated master index at {os.path.relpath(MASTER_INDEX_PATH, root_dir)}.")
+        logger.verbose(f"✅ Successfully updated master index at {os.path.relpath(master_index_path, root_dir)}.")
 
     except IOError as e:
         logger.error(f"❌ Fatal Error: Could not access or write files: {e}")
@@ -463,9 +478,16 @@ def generate_combined_includes(root_dir: str):
             # Calculate the path from the generated file's location to the source content file
             relative_include_path = os.path.relpath(source_content_path, relative_start_dir)
 
-            include_directives.append(
-                f".. include:: {relative_include_path}\n"
-            )
+            if GENERATED_INCLUDES_EXTENSION == ".rst":
+                include_directives.append(
+                    f".. include:: {relative_include_path}\n"
+                )
+            else:
+                include_directives.append(
+                    "```{include} "
+                    f"{relative_include_path}\n"
+                    "```"
+                )
 
         # Write the list of include directives to the new destination file
         with open(output_file_path, 'w', encoding='utf-8') as f:
